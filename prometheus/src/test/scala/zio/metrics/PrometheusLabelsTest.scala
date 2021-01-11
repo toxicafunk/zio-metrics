@@ -35,8 +35,8 @@ object PrometheusLabelsTest {
   } yield (cr, d)
 
   val testHistogram: RIO[Registry with Clock, CollectorRegistry] = for {
-    h <- Histogram("simple_histogram", Buckets.Simple(Seq(10, 20, 30, 40, 50)), None, "method" :: LNil)
-    _ <- RIO.foreach_(List(10.5, 25, 50.7, 57.3, 19.8))(h("GET" :: LNil).observeArbitrary)
+    h  <- Histogram("simple_histogram", Buckets.Simple(Seq(10, 20, 30, 40, 50)), None, "method" :: LNil)
+    _  <- RIO.foreach_(List(10.5, 25, 50.7, 57.3, 19.8))(h("GET" :: LNil).observeArbitrary)
     cr <- collectorRegistry
   } yield cr
 
@@ -65,8 +65,8 @@ object PrometheusLabelsTest {
   } yield cr
 
   val testSummary: RIO[Registry with Clock, CollectorRegistry] = for {
-    s <- Summary("simple_summary", List(Quantile(0.5, 0.05), Quantile(0.9, 0.01)), None, "method" :: LNil)
-    _ <- RIO.foreach_(List(10.5, 25, 50.7, 57.3, 19.8))(s("POST" :: LNil).observeArbitrary)
+    s  <- Summary("simple_summary", List(Quantile(0.5, 0.05), Quantile(0.9, 0.01)), None, "method" :: LNil)
+    _  <- RIO.foreach_(List(10.5, 25, 50.7, 57.3, 19.8))(s("POST" :: LNil).observeArbitrary)
     cr <- collectorRegistry
   } yield cr
 

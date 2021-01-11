@@ -1,9 +1,9 @@
 package zio.metrics
 
 import java.util
-import zio.{RIO, Runtime, Task}
+import zio.{ RIO, Runtime, Task }
 import zio.console.putStrLn
-import testz.{Harness, PureHarness, Result, assert}
+import testz.{ assert, Harness, PureHarness, Result }
 import io.prometheus.client.CollectorRegistry
 import zio.metrics.prometheus._
 import zio.metrics.prometheus.exporters._
@@ -50,9 +50,9 @@ object PrometheusTest {
   } yield cr
 
   val testHistogramTimer: RIO[Registry with Clock, (CollectorRegistry, Duration)] = for {
-    h  <- Histogram("simple_histogram_timer", Buckets.Default, None)
-    t  <- h.startTimer
-    d  <- {
+    h <- Histogram("simple_histogram_timer", Buckets.Default, None)
+    t <- h.startTimer
+    d <- {
       Thread.sleep(2000)
       t.stop
     }

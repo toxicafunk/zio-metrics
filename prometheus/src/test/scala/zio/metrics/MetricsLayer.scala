@@ -3,10 +3,10 @@ package zio.metrics
 import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.exporter.HTTPServer
 import zio.clock.Clock
-import zio.console.{Console, putStrLn}
+import zio.console.{ putStrLn, Console }
 import zio.metrics.prometheus.LabelList.LNil
 import zio.metrics.prometheus._
-import zio.{Has, Layer, RIO, Runtime, Task, URLayer, ZLayer}
+import zio.{ Has, Layer, RIO, Runtime, Task, URLayer, ZLayer }
 
 object MetricsLayer {
 
@@ -28,7 +28,8 @@ object MetricsLayer {
 
     val live: URLayer[Registry, Metrics] = ZLayer.succeed(new Service {
 
-      val rt: Runtime.Managed[Registry with Clock] = Runtime.unsafeFromLayer(Registry.liveWithDefaultMetrics ++ Clock.live)
+      val rt: Runtime.Managed[Registry with Clock] =
+        Runtime.unsafeFromLayer(Registry.liveWithDefaultMetrics ++ Clock.live)
 
       private val (myCounter, myHistogram) = rt.unsafeRun(
         for {
@@ -54,7 +55,8 @@ object MetricsLayer {
     })
 
     val receiver: (CounterInstance, HistogramInstance) => Layer[Nothing, Metrics] =
-      (counter, histogram) => ZLayer.succeed(
+      (counter, histogram) =>
+        ZLayer.succeed(
           new Service {
             def getRegistry: RIO[Registry, CollectorRegistry] =
               collectorRegistry
@@ -65,11 +67,10 @@ object MetricsLayer {
             def inc(amount: Double, tags: LabelList.LCons[LabelList.LCons[LNil]]): Task[Unit] =
               counter(tags).inc(amount)
 
-
             def time(f: () => Double, tags: LabelList.LCons[LabelList.LCons[LNil]]): Task[Double] =
               histogram(tags).observe_(f)
           }
-      )
+        )
 
     val receiverHas: ZLayer[Has[(CounterInstance, HistogramInstance)], Nothing, Metrics] =
       ZLayer.fromFunction[Has[(CounterInstance, HistogramInstance)], Metrics.Service](
@@ -120,8 +121,7 @@ object MetricsLayer {
     HTTPServer
   ] =
     http(9090).use(
-      hs =>
-      {
+      hs => {
         println("Start")
         for {
           _ <- putStrLn("Exporters")
@@ -130,16 +130,16 @@ object MetricsLayer {
           _ <- m.get.inc("RequestCounter" :: "post" :: LNil)
           _ <- m.get.inc(2.0, "LoginCounter" :: "login" :: LNil)
           _ <- m.get.time(() => {
-            Thread.sleep(2000); 2.0
-          }, "histogram" :: "get" :: LNil)
-          s  <- string004
-          _  <- putStrLn(s)
+                Thread.sleep(2000); 2.0
+              }, "histogram" :: "get" :: LNil)
+          s <- string004
+          _ <- putStrLn(s)
           //hs <- httpM(9090)
         } yield hs
       }
     )
 
-  type Env = Registry with Exporters with Console
+  type Env        = Registry with Exporters with Console
   type MetricsEnv = Registry with Clock with Metrics with Exporters with Console
 
   /*val rtReceiver: Runtime.Managed[Registry with Clock with Metrics with Exporters with Console] =
@@ -158,7 +158,10 @@ object MetricsLayer {
 
     //val hs = Runtime.default.unsafeRun(exporterTest.provideLayer(Registry.liveWithDefaultMetrics ++ Clock.live >+> rLayer ++ Exporters.live ++ Console.live))
 
-    val hs = Runtime.default.unsafeRun(exporterTest.provideLayer(Registry.liveWithDefaultMetrics >+> Exporters.live ++ Console.live ++ Clock.live ++ Metrics.live))
+    val hs = Runtime.default.unsafeRun(
+      exporterTest
+        .provideLayer(Registry.liveWithDefaultMetrics >+> Exporters.live ++ Console.live ++ Clock.live ++ Metrics.live)
+    )
     println(hs.getPort)
     ()
   }

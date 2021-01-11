@@ -25,7 +25,7 @@ object ExportersTest {
           c <- Counter("ExportersTest", None, "exporter" :: LNil)
           _ <- c("counter" :: LNil).inc
           _ <- c("counter" :: LNil).inc(2.0)
-          h <- Histogram("export_histogram", Buckets.Linear(1000,1000,3), None, "exporter" :: "method" :: LNil)
+          h <- Histogram("export_histogram", Buckets.Linear(1000, 1000, 3), None, "exporter" :: "method" :: LNil)
           _ <- h("histogram" :: "get" :: LNil).observe_(() => Thread.sleep(2000))
           s <- string004
           _ <- putStrLn(s)

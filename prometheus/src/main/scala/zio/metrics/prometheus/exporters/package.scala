@@ -1,7 +1,7 @@
 package zio.metrics.prometheus
 
 import io.prometheus.client.exporter.HTTPServer
-import io.prometheus.{client => jp}
+import io.prometheus.{ client => jp }
 import zio._
 import zio.clock.Clock
 import zio.duration.Duration
@@ -42,12 +42,11 @@ package object exporters {
         def httpM(port: Int): Task[jp.exporter.HTTPServer] =
           for {
             r <- registry.collectorRegistry
-            server <- Task
-              .effect {
-                val s = new jp.exporter.HTTPServer(new InetSocketAddress(port), r)
-                println(s"Server started on port: ${s.getPort}")
-                s
-              }
+            server <- Task.effect {
+                       val s = new jp.exporter.HTTPServer(new InetSocketAddress(port), r)
+                       println(s"Server started on port: ${s.getPort}")
+                       s
+                     }
           } yield server
 
         def graphite(host: String, port: Int, interval: Duration): RManaged[Clock, Unit] =
@@ -88,7 +87,7 @@ package object exporters {
   }
 
   def http(port: Int): RManaged[Exporters, jp.exporter.HTTPServer] = ZManaged.accessManaged(_.get.http(port))
-  def httpM(port: Int): RIO[Exporters, HTTPServer] = RIO.accessM(_.get.httpM(port))
+  def httpM(port: Int): RIO[Exporters, HTTPServer]                 = RIO.accessM(_.get.httpM(port))
   def graphite(host: String, port: Int, interval: Duration): RManaged[Exporters with Clock, Unit] =
     ZManaged.accessManaged(_.get.graphite(host, port, interval))
   def pushGateway(

@@ -98,7 +98,7 @@ trait Gauge extends Metric with TimerMetric {
   def inc(amount: Double): UIO[Unit]
   def dec: UIO[Unit] = dec(1)
   def dec(amount: Double): UIO[Unit]
-  override def observe(amount: Duration): UIO[Unit] = set(amount.toMillis.toDouble)
+  override def observe(amount: Duration): UIO[Unit]       = set(amount.toMillis.toDouble)
   override def observeArbitrary(value: Double): UIO[Unit] = set(value)
 }
 object Gauge extends LabelledMetric[Registry with Clock, Throwable, Gauge] {
