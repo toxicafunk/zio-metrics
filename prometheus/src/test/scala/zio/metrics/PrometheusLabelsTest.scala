@@ -36,9 +36,7 @@ object PrometheusLabelsTest {
 
   val testHistogram: RIO[Registry with Clock, CollectorRegistry] = for {
     h <- Histogram("simple_histogram", Buckets.Simple(Seq(10, 20, 30, 40, 50)), None, "method" :: LNil)
-    _ <- RIO.foreach_(List(10500L, 25000L, 50700L, 57300L, 19800L))(
-          (l: Long) => h("GET" :: LNil).observe(Duration.fromMillis(l))
-        )
+    _ <- RIO.foreach_(List(10.5, 25, 50.7, 57.3, 19.8))(h("GET" :: LNil).observeArbitrary)
     cr <- collectorRegistry
   } yield cr
 
@@ -68,9 +66,7 @@ object PrometheusLabelsTest {
 
   val testSummary: RIO[Registry with Clock, CollectorRegistry] = for {
     s <- Summary("simple_summary", List(Quantile(0.5, 0.05), Quantile(0.9, 0.01)), None, "method" :: LNil)
-    _ <- RIO.foreach_(List(10500L, 25000L, 50700L, 57300L, 19800L))(
-          (l: Long) => s("POST" :: LNil).observe(Duration.fromMillis(millis = l))
-        )
+    _ <- RIO.foreach_(List(10.5, 25, 50.7, 57.3, 19.8))(s("POST" :: LNil).observeArbitrary)
     cr <- collectorRegistry
   } yield cr
 
@@ -122,7 +118,7 @@ object PrometheusLabelsTest {
         val count = r.filteredMetricFamilySamples(set).nextElement().samples.get(0).value
         val sum   = r.filteredMetricFamilySamples(set).nextElement().samples.get(1).value
 
-        Result.combine(assert(count == 1.0), assert(sum >= 2.0 && sum <= 3.0))
+        Result.combine(assert(count == 1.0), assert(sum >= 2000.0 && sum <= 3000.0))
       },
       test("histogram duration count and sum are as expected") { () =>
         val set: util.Set[String] = new util.HashSet[String]()
@@ -132,7 +128,7 @@ object PrometheusLabelsTest {
         val r     = rt.unsafeRun(testHistogramDuration)
         val count = r.filteredMetricFamilySamples(set).nextElement().samples.get(0).value
         val sum   = r.filteredMetricFamilySamples(set).nextElement().samples.get(1).value
-        Result.combine(assert(count == 3.0), assert(sum >= 3.1 && sum <= 5.0))
+        Result.combine(assert(count == 3.0), assert(sum >= 3000.0 && sum <= 5000.0))
       },
       test("summary count and sum are as expected") { () =>
         val set: util.Set[String] = new util.HashSet[String]()

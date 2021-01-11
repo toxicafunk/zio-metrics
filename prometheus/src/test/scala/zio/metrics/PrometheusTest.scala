@@ -1,9 +1,9 @@
 package zio.metrics
 
 import java.util
-import zio.{ RIO, Runtime, Task }
+import zio.{RIO, Runtime, Task}
 import zio.console.putStrLn
-import testz.{ assert, Harness, PureHarness, Result }
+import testz.{Harness, PureHarness, Result, assert}
 import io.prometheus.client.CollectorRegistry
 import zio.metrics.prometheus._
 import zio.metrics.prometheus.exporters._
@@ -44,19 +44,20 @@ object PrometheusTest {
   } yield (cr, d)
 
   val testHistogram: RIO[Registry with Clock, CollectorRegistry] = for {
-    h  <- Histogram("simple_histogram", Buckets.Default, None)
-    _  <- RIO.foreach_(List(10500L, 25000L, 50700L, 57300L, 19800L))(l => h.observe(Duration.fromMillis(l)))
+    h  <- Histogram("simple_histogram", Buckets.Linear(10, 10, 5), None)
+    _  <- RIO.foreach_(List(10.5, 25, 50.7, 57.3, 19.8))(h.observeArbitrary)
     cr <- collectorRegistry
   } yield cr
 
-  val testHistogramTimer: RIO[Registry with Clock, CollectorRegistry] = for {
-    h <- Histogram("simple_histogram_timer", Buckets.Default, None)
-    t <- h.startTimer
-    _ <- Task { () =>
-          Thread.sleep(2000); t.stop
-        }
+  val testHistogramTimer: RIO[Registry with Clock, (CollectorRegistry, Duration)] = for {
+    h  <- Histogram("simple_histogram_timer", Buckets.Default, None)
+    t  <- h.startTimer
+    d  <- {
+      Thread.sleep(2000)
+      t.stop
+    }
     cr <- collectorRegistry
-  } yield cr
+  } yield (cr, d)
 
   val testHistogramTask: RIO[Registry with Clock, (CollectorRegistry, String)] = for {
     h  <- Histogram("task_histogram_timer", Buckets.Default, None)
@@ -74,7 +75,7 @@ object PrometheusTest {
 
   val testSummary: RIO[Registry with Clock, CollectorRegistry] = for {
     s  <- Summary("simple_summary", List.empty[Quantile], None)
-    _  <- RIO.foreach_(List(10500L, 25000L, 50700L, 57300L, 19800L))(l => s.observe(Duration.fromMillis(l)))
+    _  <- RIO.foreach_(List(10.5, 25, 50.7, 57.3, 19.8))(s.observeArbitrary)
     cr <- collectorRegistry
   } yield cr
 
@@ -86,7 +87,7 @@ object PrometheusTest {
 
   val testSummaryTask2: RIO[Registry with Clock, CollectorRegistry] = for {
     s  <- Summary("task_summary_timer_", List.empty[Quantile], None)
-    _  <- s.observe(Task(Thread.sleep(2000)))
+    _  <- s.observe_(() => Thread.sleep(2000))
     cr <- collectorRegistry
   } yield cr
 
@@ -148,9 +149,11 @@ object PrometheusTest {
 
         val r = rt.unsafeRun(testHistogramTimer)
 
-        val count = r.filteredMetricFamilySamples(set).nextElement().samples.get(0).value
-        val sum   = r.filteredMetricFamilySamples(set).nextElement().samples.get(1).value
-        Result.combine(assert(count == 1.0), assert(sum >= 2.0 && sum <= 3.0))
+        val count = r._1.filteredMetricFamilySamples(set).nextElement().samples.get(0).value
+        val sum   = r._1.filteredMetricFamilySamples(set).nextElement().samples.get(1).value
+
+        println(r._2.toMillis)
+        Result.combine(assert(count == 1.0), assert(sum >= 2000.0 && sum <= 3000.0))
       },
       test("histogram timer accepts tasks") { () =>
         val set: util.Set[String] = new util.HashSet[String]()
@@ -164,7 +167,7 @@ object PrometheusTest {
 
         println(s"Timed Task returns ${r._2} after ${r._2}")
 
-        Result.combine(assert(count == 1.0 && sum >= 2.0 && sum <= 3.0), assert(r._2 == "Success"))
+        Result.combine(assert(count == 1.0 && sum >= 2000.0 && sum <= 3000.0), assert(r._2 == "Success"))
       },
       test("histogram timer_ accepts tasks") { () =>
         val set: util.Set[String] = new util.HashSet[String]()
@@ -175,7 +178,7 @@ object PrometheusTest {
 
         val count = r._1.filteredMetricFamilySamples(set).nextElement().samples.get(0).value
         val sum   = r._1.filteredMetricFamilySamples(set).nextElement().samples.get(1).value
-        Result.combine(assert(count == 1.0 && sum >= 2.0 && sum <= 3.0), assert(r._2 == "Success"))
+        Result.combine(assert(count == 1.0 && sum >= 2000.0 && sum <= 3000.0), assert(r._2 == "Success"))
       },
       test("summary count and sum are as expected") { () =>
         val set: util.Set[String] = new util.HashSet[String]()
@@ -196,7 +199,7 @@ object PrometheusTest {
 
         val count = r.filteredMetricFamilySamples(set).nextElement().samples.get(0).value
         val sum   = r.filteredMetricFamilySamples(set).nextElement().samples.get(1).value
-        Result.combine(assert(count == 1.0), assert(sum >= 2.0 && sum <= 3.0))
+        Result.combine(assert(count == 1.0), assert(sum >= 2000.0 && sum <= 3000.0))
       },
       test("summary timer_ accepts tasks") { () =>
         val set: util.Set[String] = new util.HashSet[String]()
@@ -209,7 +212,7 @@ object PrometheusTest {
 
         val count = r.filteredMetricFamilySamples(set).nextElement().samples.get(0).value
         val sum   = r.filteredMetricFamilySamples(set).nextElement().samples.get(1).value
-        Result.combine(assert(count == 1.0), assert(sum >= 2.0 && sum <= 3.0))
+        Result.combine(assert(count == 1.0), assert(sum >= 2000.0 && sum <= 3000.0))
       }
     )
   }
